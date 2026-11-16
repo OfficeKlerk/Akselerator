@@ -1,0 +1,51 @@
+# Запуск всего проекта: docker compose up --build → http://localhost:8080
+services:
+  db:
+    # сборка официального образа PostGIS с поддержкой arm64 (Mac на Apple Silicon)
+    image: imresamu/postgis:16-3.5
+    environment:
+      POSTGRES_USER: pravozor
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pravozor}
+      POSTGRES_DB: pravozor
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pravozor"]
+      interval: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+
+  api: &backend
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://pravozor:${POSTGRES_PASSWORD:-pravozor}@db:5432/pravozor
+      REDIS_URL: redis://redis:6379/0
+      # значение по умолчанию — только для локальной разработки; на сервере задать в .env
+      SECRET_KEY: ${SECRET_KEY:-dev-only-secret-change-in-production}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      # прокси с российским IP, если НСПД блокирует адрес сервера
+      NSPD_PROXY: ${NSPD_PROXY:-}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    ports:
+      - "8000:8000"
+
+  worker:
+    <<: *backend
+    command: celery -A app.pipeline worker --loglevel=info --concurrency=2
+    ports: []
+
+  web:
+    build: ./frontend
+    depends_on:
+      - api
+    ports:
+      - "8080:80"
+
+volumes:
+  pgdata:

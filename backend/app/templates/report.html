@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Отчёт о рисках — {{ r.parcel.cadastral_number }}</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; @bottom-right { content: counter(page) " / " counter(pages); font-size: 8pt; color: #475569; } }
+  body { font-family: "DejaVu Sans", sans-serif; font-size: 9.5pt; line-height: 1.45; color: #0f172a; }
+  h1 { font-size: 17pt; margin: 0 0 2pt; color: #1e3a8a; }
+  h2 { font-size: 12pt; margin: 16pt 0 6pt; color: #1e3a8a; }
+  h3 { font-size: 10.5pt; margin: 0 0 4pt; }
+  .muted { color: #475569; }
+  table { width: 100%; border-collapse: collapse; }
+  td, th { text-align: left; vertical-align: top; padding: 4pt 6pt; border-bottom: 0.5pt solid #cbd5e1; }
+  th { width: 38%; font-weight: normal; color: #475569; }
+  .badge { display: inline-block; padding: 1pt 7pt; border-radius: 8pt; font-size: 8.5pt; font-weight: bold; }
+  .low { background: #dcfce7; color: #166534; } .medium { background: #fef3c7; color: #92400e; } .high { background: #fee2e2; color: #991b1b; }
+  .summary { border: 0.5pt solid #cbd5e1; border-radius: 6pt; padding: 10pt; margin-top: 10pt; }
+  .risk { border: 0.5pt solid #cbd5e1; border-radius: 6pt; padding: 9pt 10pt; margin-bottom: 8pt; break-inside: avoid; }
+  .label { font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.5pt; color: #475569; margin: 6pt 0 1pt; }
+  ul { margin: 0; padding-left: 14pt; }
+  .disclaimer { margin-top: 14pt; padding: 8pt 10pt; background: #e9eef5; border-radius: 6pt; font-size: 8.5pt; }
+</style>
+</head>
+<body>
+  <h1>Отчёт о рисках земельного участка</h1>
+  <div class="muted">ПРАВОЗОР · участок {{ r.parcel.cadastral_number }} · цель: {{ purpose }} · сформирован {{ generated }}</div>
+
+  <div class="summary">
+    <span class="badge {{ r.overall_level }}">{{ levels[r.overall_level] }}</span>
+    <p style="margin: 6pt 0 0">{{ r.summary }}</p>
+  </div>
+
+  <h2>Сведения об участке</h2>
+  <table>
+    <tr><th>Адрес</th><td>{{ r.parcel.address or "—" }}</td></tr>
+    <tr><th>Площадь</th><td>{{ num(r.parcel.area_m2) }} м²</td></tr>
+    <tr><th>Категория земель</th><td>{{ r.parcel.land_category or "—" }}</td></tr>
+    <tr><th>Вид разрешённого использования</th><td>{{ r.parcel.permitted_use or "—" }}</td></tr>
+    <tr><th>Кадастровая стоимость</th><td>{{ num(r.parcel.cadastral_value_rub) }} ₽</td></tr>
+  </table>
+
+  <h2>Пересечения с зонами</h2>
+  {% if r.zones %}
+  <table>
+    {% for z in r.zones %}
+    <tr>
+      <td><strong>{{ z.type_label }}</strong><br><span class="muted">{{ z.name }}{% if z.registry_number %} · реестр. № {{ z.registry_number }}{% endif %}</span></td>
+      <td style="width: 28%; text-align: right">{{ num(z.overlap_pct) }} % · {{ num(z.overlap_area_m2) }} м²</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">Пересечений с зонами не найдено.</p>
+  {% endif %}
+
+  <h2>Риски и пути решения</h2>
+  {% for risk in r.risks %}
+  <div class="risk">
+    <h3><span class="badge {{ risk.level }}">{{ levels[risk.level] }}</span> {{ risk.title }}</h3>
+    <div class="label">Что обнаружено</div>
+    <div>{{ risk.finding }}</div>
+    <div class="label">Основание</div>
+    <ul>{% for c in risk.basis %}<li>{{ c.document }}{% if c.article %}, {{ c.article }}{% endif %}</li>{% endfor %}</ul>
+    <div class="label">Что делать</div>
+    <div>{{ risk.recommendation }}</div>
+  </div>
+  {% endfor %}
+
+  <h2>Источники данных</h2>
+  <ul>{% for s in r.data_sources %}<li>{{ s.name }}</li>{% endfor %}</ul>
+
+  <div class="disclaimer">{{ r.disclaimer }}</div>
+</body>
+</html>

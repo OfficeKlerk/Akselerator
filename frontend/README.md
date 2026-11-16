@@ -21,12 +21,14 @@ npm run dev
 
 ## Подключение к бэкенду (FastAPI)
 
+Бэкенд поднимается из корня репозитория (`docker compose up`, см. корневой README) и слушает порт 8000.
+
 ```bash
-VITE_USE_MOCKS=false npm run dev                 # запросы /api проксируются на http://localhost:8000
-VITE_USE_MOCKS=false API_URL=http://host:8000 npm run dev
+VITE_USE_MOCKS=false npm run dev
 ```
 
-В продакшн-сборке (`npm run build`) моков нет. Nginx отдаёт `dist/` и проксирует `/api` на бэкенд —
+Запросы `/api` проксируются на `http://localhost:8000` (другой адрес — переменная `API_URL`).
+В продакшн-сборке (`npm run build`) моков нет: Nginx отдаёт `dist/` и проксирует `/api` на бэкенд —
 фронт и API на одном домене, поэтому cookie авторизации работает без CORS.
 
 ## Контракт API
